@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Horas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --navy-950:#060F24;
+    --navy-900:#0B1A3A;
+    --navy-800:#152A55;
+    --navy-700:#1F3A6E;
+    --navy-600:#2C4A85;
+    --gold:#D8AE6E;
+    --gold-dim:#9C7F4E;
+    --mint:#5BBE93;
+    --coral:#E2735A;
+    --text-1:#F4F1E9;
+    --text-2:#93A0C0;
+    --text-3:#5E6D91;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(216,174,110,0.08), transparent 55%),
+      linear-gradient(165deg, var(--navy-900) 0%, var(--navy-950) 100%);
+    color:var(--text-1);
+    font-family:'Inter', sans-serif;
+    padding:20px 14px 60px;
+  }
+  .wrap{max-width:520px; margin:0 auto;}
+
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:22px;
+  }
+  header .brand{ display:flex; align-items:center; gap:10px; }
+  header .brand-mark{
+    width:34px; height:34px; border-radius:50%;
+    border:1.5px solid var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  header .brand-mark::before{
+    content:''; position:absolute; width:1.5px; height:8px; background:var(--gold);
+    top:6px; left:50%; transform-origin:bottom center; transform:translateX(-50%) rotate(35deg);
+  }
+  header .brand-mark::after{
+    content:''; position:absolute; width:1.5px; height:6px; background:var(--gold);
+    top:8px; left:50%; transform-origin:bottom center; transform:translateX(-50%) rotate(-70deg);
+  }
+  header h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.15rem; font-weight:700; margin:0; letter-spacing:0.01em;
+  }
+  header .badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.65rem; font-weight:500; color:var(--text-2);
+    border:1px solid var(--navy-600); padding:5px 10px; border-radius:20px;
+  }
+
+  .month-nav{
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    margin-bottom:16px;
+  }
+  .month-nav button{
+    width:32px; height:32px; border-radius:50%;
+    border:1px solid var(--navy-600); background:transparent; color:var(--gold);
+    font-size:1.1rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .month-nav button:active{ background:var(--navy-700); }
+  .month-label{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.05rem; font-weight:700; text-transform:capitalize;
+    min-width:150px; text-align:center;
+  }
+
+  .export-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    background:transparent; color:var(--gold);
+    border:1px solid var(--gold-dim); border-radius:12px;
+    padding:11px; margin-bottom:18px;
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:0.82rem;
+    cursor:pointer;
+  }
+  .export-btn:active{ background:rgba(216,174,110,0.1); }
+
+  /* --- panel principal con anillo --- */
+  .dial{
+    background:var(--navy-800);
+    border:1px solid var(--navy-600);
+    border-radius:20px;
+    padding:22px 20px;
+    margin-bottom:18px;
+    display:flex; align-items:center; gap:18px;
+  }
+  .ring-wrap{
+    position:relative; width:96px; height:96px; flex-shrink:0;
+    border-radius:50%;
+    background: conic-gradient(var(--gold) calc(var(--pct,0)*1%), var(--navy-700) 0);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ring-wrap::before{
+    content:''; position:absolute; inset:7px; border-radius:50%;
+    background:var(--navy-800);
+  }
+  .ring-center{
+    position:relative; text-align:center; z-index:1;
+  }
+  .ring-center .num{
+    font-family:'JetBrains Mono',monospace; font-size:1.15rem; font-weight:700; color:var(--text-1); line-height:1.1;
+  }
+  .ring-center .pct{
+    font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--gold);
+  }
+  .dial-info{ flex:1; min-width:0; }
+  .dial-info .eyebrow{
+    font-size:0.65rem; color:var(--text-2); font-weight:600;
+    text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;
+  }
+  .dial-info .goal-line{
+    font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--text-2); margin-bottom:8px;
+  }
+  .dial-info .goal-line b{ color:var(--text-1); }
+  .status-pill{
+    display:inline-block;
+    font-family:'Space Grotesk',sans-serif; font-weight:700;
+    font-size:0.72rem; padding:4px 10px; border-radius:20px;
+  }
+  .status-pill.falta{ background:rgba(226,115,90,0.16); color:var(--coral); }
+  .status-pill.ok, .status-pill.sobra{ background:rgba(91,190,147,0.16); color:var(--mint); }
+
+  /* --- formulario tipo ficha --- */
+  form{
+    background:var(--navy-800); border:1px solid var(--navy-600);
+    border-radius:18px; padding:18px;
+    margin-bottom:18px;
+  }
+  form .frow{ display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .field{ flex:1; min-width:110px; display:flex; flex-direction:column; gap:5px;}
+  .field label{
+    font-size:0.65rem; color:var(--text-2); font-weight:600;
+    text-transform:uppercase; letter-spacing:0.04em; padding-left:2px;
+  }
+  .field input{
+    font-family:'JetBrains Mono',monospace;
+    border:1px solid var(--navy-600);
+    border-radius:10px;
+    padding:10px 10px;
+    font-size:0.88rem;
+    color:var(--text-1);
+    background:var(--navy-900);
+    color-scheme: dark;
+  }
+  .field input:focus{ outline:none; border-color:var(--gold); }
+  form button{
+    width:100%;
+    background:var(--gold); color:var(--navy-950); border:none; border-radius:10px;
+    padding:12px; font-family:'Space Grotesk',sans-serif; font-weight:700;
+    font-size:0.9rem; cursor:pointer; letter-spacing:0.01em;
+  }
+  form button:active{ background:var(--gold-dim); }
+  .preview-hrs{
+    text-align:center; font-family:'JetBrains Mono',monospace;
+    font-size:0.76rem; color:var(--text-2); margin-bottom:10px; min-height:16px;
+  }
+  .preview-hrs b{ color:var(--gold); }
+
+  /* --- semanas estilo ficha perforada --- */
+  .week-block{
+    background:var(--navy-800); border:1px solid var(--navy-600);
+    border-radius:16px; padding:14px 16px 14px 20px; margin-bottom:12px;
+    position:relative; overflow:hidden;
+  }
+  .week-block::before{
+    content:'';
+    position:absolute; left:0; top:0; bottom:0; width:8px;
+    background-image: radial-gradient(circle, var(--navy-950) 2.5px, transparent 2.6px);
+    background-size: 8px 14px;
+    background-position: 0 4px;
+  }
+  .week-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:0.78rem; font-weight:700; color:var(--text-1);
+    border-bottom:1px dashed var(--navy-600);
+    padding-bottom:8px; margin-bottom:8px;
+  }
+  .week-head .wk-total{
+    font-family:'JetBrains Mono',monospace; color:var(--gold); font-weight:600; font-size:0.78rem;
+  }
+  .week-export-btn{
+    display:block; width:100%;
+    background:transparent; color:var(--gold);
+    border:1px solid var(--gold-dim); border-radius:9px;
+    padding:8px; margin-bottom:10px;
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:0.72rem;
+    cursor:pointer;
+  }
+  .week-export-btn:active{ background:rgba(216,174,110,0.1); }
+
+  .entry{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.05);
+    font-size:0.85rem;
+  }
+  .entry:last-child{ border-bottom:none; }
+  .entry .left{ display:flex; flex-direction:column; }
+  .entry .date{ font-weight:600; font-size:0.82rem; color:var(--text-1); }
+  .entry .times{ font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--text-2); }
+  .entry .right{ display:flex; align-items:center; gap:10px; }
+  .entry .hrs{
+    font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--navy-950);
+    background:var(--gold); padding:3px 9px; border-radius:8px; font-size:0.78rem;
+  }
+  .entry .del{
+    background:none; border:none; color:var(--text-3); cursor:pointer;
+    font-size:0.95rem; line-height:1;
+  }
+  .entry .del:active{ color:var(--coral); }
+
+  .empty{
+    text-align:center; padding:32px 10px; color:var(--text-2);
+    background:var(--navy-800); border:1px dashed var(--navy-600); border-radius:16px;
+    font-size:0.82rem; line-height:1.6;
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--navy-700); color:var(--text-1); padding:10px 16px; border-radius:12px;
+    border:1px solid var(--navy-600);
+    font-size:0.76rem; max-width:88%; text-align:center;
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+    z-index:50;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(3,8,20,0.6);
+    display:none; align-items:flex-end; justify-content:center; z-index:60;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:var(--navy-900); border-top:1px solid var(--navy-600);
+    border-radius:22px 22px 0 0;
+    width:100%; max-width:520px; max-height:86vh; overflow-y:auto;
+    padding:20px 18px 26px;
+  }
+  .modal h2{
+    font-family:'Space Grotesk',sans-serif; font-size:1.05rem; margin:0 0 4px; color:var(--text-1);
+  }
+  .modal .modal-sub{ font-size:0.74rem; color:var(--text-2); margin-bottom:14px; text-transform:capitalize; }
+  .modal-actions{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .modal-actions button{
+    flex:1; min-width:120px; border-radius:10px; padding:11px;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:0.8rem; cursor:pointer;
+  }
+  .modal-actions .primary{ background:var(--gold); color:var(--navy-950); border:none; }
+  .modal-actions .secondary{ background:transparent; color:var(--gold); border:1px solid var(--gold-dim); }
+  .modal-close{
+    display:block; width:100%; text-align:center; background:none; border:none;
+    color:var(--text-2); font-size:0.78rem; padding:10px; cursor:pointer;
+  }
+  .export-table{ width:100%; border-collapse:collapse; font-size:0.78rem; margin-bottom:14px; }
+  .export-table th, .export-table td{
+    text-align:left; padding:6px 4px; border-bottom:1px solid var(--navy-700);
+    font-family:'JetBrains Mono',monospace; color:var(--text-1);
+  }
+  .export-table th{ color:var(--text-2); font-weight:600; font-size:0.65rem; text-transform:uppercase; font-family:'Inter',sans-serif; }
+  .export-summary{
+    background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px;
+    padding:12px 14px; font-size:0.84rem; margin-bottom:6px;
+  }
+  .export-summary div{ display:flex; justify-content:space-between; padding:3px 0; }
+  .export-summary b{ font-family:'JetBrains Mono',monospace; color:var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <h1>Mis Horas</h1>
+    </div>
+    <div class="badge" id="today-tag"></div>
+  </header>
+
+  <div class="month-nav">
+    <button id="prev">‹</button>
+    <div class="month-label" id="month-label">—</div>
+    <button id="next">›</button>
+  </div>
+
+  <div class="dial">
+    <div class="ring-wrap" id="ring" style="--pct:0;">
+      <div class="ring-center">
+        <div class="num" id="worked">0.0</div>
+        <div class="pct" id="pct-label">0%</div>
+      </div>
+    </div>
+    <div class="dial-info">
+      <div class="eyebrow">Objetivo · 30 h / semana</div>
+      <div class="goal-line">Meta del mes: <b id="goal">0.0 h</b></div>
+      <span class="status-pill" id="status-pill">—</span>
+    </div>
+  </div>
+
+  <form id="entry-form">
+    <div class="frow">
+      <div class="field">
+        <label>Día</label>
+        <input type="date" id="input-date" required>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="field">
+        <label>Entrada</label>
+        <input type="time" id="input-start" required>
+      </div>
+      <div class="field">
+        <label>Salida</label>
+        <input type="time" id="input-end" required>
+      </div>
+    </div>
+    <div class="preview-hrs" id="preview">Completá los horarios para ver las horas</div>
+    <button type="submit">Agregar jornada</button>
+  </form>
+
+  <div id="weeks-container"></div>
+</div>
+
+<div class="modal-backdrop" id="export-backdrop">
+  <div class="modal">
+    <h2>Horas por semana</h2>
+    <div class="modal-sub" id="export-month-label"></div>
+    <div class="modal-actions">
+      <button class="primary" id="share-btn">📤 Compartir</button>
+      <button class="secondary" id="copy-btn">📋 Copiar texto</button>
+    </div>
+    <div class="export-summary" id="export-summary"></div>
+    <table class="export-table" id="export-table"></table>
+    <button class="modal-close" id="close-modal">Cerrar</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'horas:entries:v2';
+const WEEKLY_GOAL = 30;
+let entries = [];
+let viewDate = new Date();
+viewDate.setDate(1);
+
+const monthLabelEl = document.getElementById('month-label');
+const weeksContainer = document.getElementById('weeks-container');
+const workedEl = document.getElementById('worked');
+const goalEl = document.getElementById('goal');
+const statusPill = document.getElementById('status-pill');
+const ringEl = document.getElementById('ring');
+const pctLabel = document.getElementById('pct-label');
+const todayTag = document.getElementById('today-tag');
+const previewEl = document.getElementById('preview');
+
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function fmt(n){ return (Math.round(n*100)/100).toFixed(1); }
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+function computeHours(start, end){
+  if(!start || !end) return 0;
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let mins = (eh*60+em) - (sh*60+sm);
+  if(mins < 0) mins += 24*60; // turno que cruza medianoche
+  return Math.max(0, mins/60);
+}
+
+function loadEntries(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    entries = [];
+    console.error('No se pudo leer el almacenamiento local', e);
+  }
+}
+function saveEntries(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    return true;
+  }catch(e){
+    console.error('No se pudo guardar localmente', e);
+    showToast('No se pudo guardar en este dispositivo.');
+    return false;
+  }
+}
+
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(()=>t.classList.remove('show'), 3800);
+}
+
+function startOfWeek(date){
+  const d = new Date(date);
+  const day = (d.getDay()+6)%7;
+  d.setDate(d.getDate()-day);
+  return d;
+}
+function weekKeyOf(date){
+  const s = startOfWeek(date);
+  return s.toISOString().slice(0,10);
+}
+function daysInMonth(year, month){ return new Date(year, month+1, 0).getDate(); }
+
+function updatePreview(){
+  const start = document.getElementById('input-start').value;
+  const end = document.getElementById('input-end').value;
+  if(start && end){
+    const h = computeHours(start, end);
+    previewEl.innerHTML = `Esa jornada suma <b>${fmt(h)} h</b>`;
+  } else {
+    previewEl.textContent = 'Completá los horarios para ver las horas';
+  }
+}
+
+function render(){
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  monthLabelEl.textContent = `${MESES[month]} ${year}`;
+
+  const monthEntries = entries.filter(e=>{
+    const d = new Date(e.date+'T00:00:00');
+    return d.getFullYear()===year && d.getMonth()===month;
+  }).sort((a,b)=> a.date.localeCompare(b.date));
+
+  const totalWorked = monthEntries.reduce((s,e)=>s+Number(e.hours),0);
+  const nDays = daysInMonth(year, month);
+  const monthGoal = WEEKLY_GOAL * (nDays/7);
+
+  workedEl.textContent = fmt(totalWorked);
+  goalEl.textContent = fmt(monthGoal)+' h';
+
+  const pct = monthGoal>0 ? Math.min(100,(totalWorked/monthGoal)*100) : 0;
+  ringEl.style.setProperty('--pct', pct.toFixed(1));
+  pctLabel.textContent = Math.round(pct)+'%';
+
+  const diff = totalWorked - monthGoal;
+  statusPill.classList.remove('falta','ok','sobra');
+  if(diff < -0.05){
+    statusPill.textContent = `Faltan ${fmt(Math.abs(diff))} h`;
+    statusPill.classList.add('falta');
+  } else if (diff > 0.05){
+    statusPill.textContent = `+${fmt(diff)} h de sobra`;
+    statusPill.classList.add('sobra');
+  } else {
+    statusPill.textContent = 'Meta cumplida 🎉';
+    statusPill.classList.add('ok');
+  }
+
+  const weeks = {};
+  monthEntries.forEach(e=>{
+    const d = new Date(e.date+'T00:00:00');
+    const wk = weekKeyOf(d);
+    if(!weeks[wk]) weeks[wk] = { entries:[], start: startOfWeek(d) };
+    weeks[wk].entries.push(e);
+  });
+
+  weeksContainer.innerHTML = '';
+  const weekKeys = Object.keys(weeks).sort();
+
+  if(weekKeys.length===0){
+    weeksContainer.innerHTML = '<div class="empty">Todavía no cargaste jornadas este mes.<br>Sumá la primera arriba.</div>';
+    return;
+  }
+
+  weekKeys.forEach(wk=>{
+    const w = weeks[wk];
+    const wkTotal = w.entries.reduce((s,e)=>s+Number(e.hours),0);
+    const wkDiff = wkTotal - WEEKLY_GOAL;
+    const start = w.start;
+    const end = new Date(start); end.setDate(end.getDate()+6);
+    const rangeStr = `${start.getDate()}/${start.getMonth()+1} – ${end.getDate()}/${end.getMonth()+1}`;
+    const diffStr = wkDiff < -0.05 ? `faltan ${fmt(Math.abs(wkDiff))} h` : (wkDiff > 0.05 ? `+${fmt(wkDiff)} h` : 'cumplida ✓');
+
+    const block = document.createElement('div');
+    block.className = 'week-block';
+    block.innerHTML = `
+      <div class="week-head">
+        <span>Semana ${rangeStr}</span>
+        <span class="wk-total">${fmt(wkTotal)} / ${WEEKLY_GOAL} h — ${diffStr}</span>
+      </div>
+      <button class="week-export-btn" data-wk="${wk}">⬇ Exportar semana para mi coordinadora</button>
+    `;
+    w.entries.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      const d = new Date(e.date+'T00:00:00');
+      const diaSemana = ['dom','lun','mar','mié','jue','vie','sáb'][d.getDay()];
+      const row = document.createElement('div');
+      row.className = 'entry';
+      row.innerHTML = `
+        <div class="left">
+          <span class="date">${diaSemana} ${d.getDate()}/${d.getMonth()+1}</span>
+          <span class="times">${e.start} – ${e.end}</span>
+        </div>
+        <div class="right">
+          <span class="hrs">${fmt(e.hours)} h</span>
+          <button class="del" data-id="${e.id}">✕</button>
+        </div>
+      `;
+      block.appendChild(row);
+    });
+    weeksContainer.appendChild(block);
+  });
+
+  weeksContainer.querySelectorAll('.del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.getAttribute('data-id');
+      entries = entries.filter(e=>String(e.id)!==id);
+      await saveEntries();
+      render();
+    });
+  });
+
+  window._weeksCache = weeks;
+  weeksContainer.querySelectorAll('.week-export-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      exportWeek(btn.getAttribute('data-wk'));
+    });
+  });
+}
+
+function exportWeek(wk){
+  const weeks = window._weeksCache;
+  const w = weeks && weeks[wk];
+  if(!w) return;
+
+  const sortedEntries = [...w.entries].sort((a,b)=>a.date.localeCompare(b.date));
+  const total = sortedEntries.reduce((s,e)=>s+Number(e.hours),0);
+  const start = w.start;
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  const rangeStr = `${start.getDate()}/${start.getMonth()+1} al ${end.getDate()}/${end.getMonth()+1}`;
+
+  const lines = [];
+  lines.push(`Horas trabajadas — semana del ${rangeStr}`);
+  lines.push('');
+  sortedEntries.forEach(e=>{
+    const d = new Date(e.date+'T00:00:00');
+    const diaSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()];
+    lines.push(`${diaSemana} ${e.date}  ${e.start}–${e.end}  (${fmt(e.hours)} h)`);
+  });
+  lines.push('');
+  lines.push(`Total de la semana: ${fmt(total)} h`);
+
+  const data = { entries: sortedEntries, total, rangeStr, text: lines.join('\n') };
+  window._lastExport = data;
+
+  document.getElementById('export-month-label').textContent = `Semana del ${rangeStr}`;
+  document.getElementById('export-summary').innerHTML = `
+    <div><span>Total de la semana</span><b>${fmt(data.total)} h</b></div>
+  `;
+  const tbl = document.getElementById('export-table');
+  let rows = '<tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Hs</th></tr>';
+  data.entries.forEach(e=>{
+    const d = new Date(e.date+'T00:00:00');
+    const diaSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()];
+    rows += `<tr><td>${diaSemana} ${d.getDate()}/${d.getMonth()+1}</td><td>${e.start}</td><td>${e.end}</td><td>${fmt(e.hours)}</td></tr>`;
+  });
+  tbl.innerHTML = rows;
+
+  document.getElementById('export-backdrop').classList.add('show');
+}
+
+document.getElementById('close-modal').addEventListener('click', ()=>{
+  document.getElementById('export-backdrop').classList.remove('show');
+});
+document.getElementById('export-backdrop').addEventListener('click', (ev)=>{
+  if(ev.target.id === 'export-backdrop') ev.currentTarget.classList.remove('show');
+});
+
+document.getElementById('copy-btn').addEventListener('click', async ()=>{
+  const data = window._lastExport;
+  if(!data) return;
+  try{
+    await navigator.clipboard.writeText(data.text);
+    showToast('Copiado. Ya lo podés pegar en WhatsApp, mail, etc.');
+  }catch(e){
+    showToast('No se pudo copiar automáticamente. Seleccioná el texto de la tabla manualmente.');
+  }
+});
+
+document.getElementById('share-btn').addEventListener('click', async ()=>{
+  const data = window._lastExport;
+  if(!data) return;
+  const fileName = `horas-semana.txt`;
+  try{
+    const file = new File([data.text], fileName, {type:'text/plain'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:`Horas de la semana` });
+      return;
+    }
+    if(navigator.share){
+      await navigator.share({ title:`Horas de la semana`, text: data.text });
+      return;
+    }
+    throw new Error('share no disponible');
+  }catch(e){
+    try{
+      await navigator.clipboard.writeText(data.text);
+      showToast('Tu celular no permite compartir directo. Lo copié: pegalo donde lo necesites.');
+    }catch(e2){
+      showToast('No se pudo compartir ni copiar automáticamente. Copiá el texto de la tabla a mano.');
+    }
+  }
+});
+
+document.getElementById('prev').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()-1); render(); });
+document.getElementById('next').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()+1); render(); });
+
+['input-start','input-end'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+
+document.getElementById('entry-form').addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const date = document.getElementById('input-date').value;
+  const start = document.getElementById('input-start').value;
+  const end = document.getElementById('input-end').value;
+  if(!date || !start || !end) return;
+  const hours = computeHours(start, end);
+  entries.push({ id: Date.now(), date, start, end, hours });
+  await saveEntries();
+  document.getElementById('input-start').value = '';
+  document.getElementById('input-end').value = '';
+  updatePreview();
+  const d = new Date(date+'T00:00:00');
+  viewDate = new Date(d.getFullYear(), d.getMonth(), 1);
+  render();
+});
+
+(async function init(){
+  document.getElementById('input-date').value = todayISO();
+  todayTag.textContent = new Date().toLocaleDateString('es-AR', {weekday:'short', day:'2-digit', month:'short'});
+  await loadEntries();
+  render();
+})();
+</script>
+</body>
+</html>
