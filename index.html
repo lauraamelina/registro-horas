@@ -297,6 +297,8 @@
     <button id="next">›</button>
   </div>
 
+  <button id="holidays-btn" class="export-btn">🗓 Feriados de este mes</button>
+
   <div class="dial">
     <div class="ring-wrap" id="ring" style="--pct:0;">
       <div class="ring-center">
@@ -305,7 +307,7 @@
       </div>
     </div>
     <div class="dial-info">
-      <div class="eyebrow">Objetivo · 30 h / semana</div>
+      <div class="eyebrow">Objetivo · 6 h por día hábil (feriados no cuentan)</div>
       <div class="goal-line">Meta del mes: <b id="goal">0.0 h</b></div>
       <span class="status-pill" id="status-pill">—</span>
     </div>
@@ -349,10 +351,28 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="holidays-backdrop">
+  <div class="modal">
+    <h2>Feriados</h2>
+    <div class="modal-sub" id="holidays-month-label"></div>
+    <div class="frow" style="margin-bottom:14px;">
+      <div class="field" style="flex:1;">
+        <label>Agregar feriado</label>
+        <input type="date" id="new-holiday-date">
+      </div>
+      <button id="add-holiday-btn" style="align-self:flex-end; background:var(--gold); color:var(--navy-950); border:none; border-radius:10px; padding:10px 16px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:0.8rem; cursor:pointer;">Agregar</button>
+    </div>
+    <div id="holidays-list"></div>
+    <button class="modal-close" id="close-holidays-modal">Cerrar</button>
+  </div>
+</div>
+
 <script>
 const STORAGE_KEY = 'horas:entries:v2';
-const WEEKLY_GOAL = 30;
+const HOLIDAYS_KEY = 'horas:holidays:v1';
+const DAILY_GOAL = 6; // horas por día hábil (lun-vie)
 let entries = [];
+let holidays = [];
 let viewDate = new Date();
 viewDate.setDate(1);
 
@@ -401,6 +421,48 @@ function saveEntries(){
   }
 }
 
+function loadHolidays(){
+  try{
+    const raw = localStorage.getItem(HOLIDAYS_KEY);
+    holidays = raw ? JSON.parse(raw) : [];
+  }catch(e){ holidays = []; }
+}
+function saveHolidays(){
+  try{
+    localStorage.setItem(HOLIDAYS_KEY, JSON.stringify(holidays));
+    return true;
+  }catch(e){
+    showToast('No se pudo guardar el feriado en este dispositivo.');
+    return false;
+  }
+}
+
+function isoLocal(date){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function isWeekday(date){
+  const day = date.getDay();
+  return day>=1 && day<=5;
+}
+function isHoliday(dateStr){
+  return holidays.includes(dateStr);
+}
+function countWorkdays(start, end){
+  // cuenta días lun-vie entre start y end (inclusive) que no sean feriados
+  let count = 0;
+  const d = new Date(start);
+  while(d <= end){
+    const iso = isoLocal(d);
+    if(isWeekday(d) && !isHoliday(iso)) count++;
+    d.setDate(d.getDate()+1);
+  }
+  return count;
+}
+
 function showToast(msg){
   let t = document.getElementById('toast');
   if(!t){
@@ -423,7 +485,7 @@ function startOfWeek(date){
 }
 function weekKeyOf(date){
   const s = startOfWeek(date);
-  return s.toISOString().slice(0,10);
+  return isoLocal(s);
 }
 function daysInMonth(year, month){ return new Date(year, month+1, 0).getDate(); }
 
@@ -449,8 +511,9 @@ function render(){
   }).sort((a,b)=> a.date.localeCompare(b.date));
 
   const totalWorked = monthEntries.reduce((s,e)=>s+Number(e.hours),0);
-  const nDays = daysInMonth(year, month);
-  const monthGoal = WEEKLY_GOAL * (nDays/7);
+  const firstOfMonth = new Date(year, month, 1);
+  const lastOfMonth = new Date(year, month, daysInMonth(year, month));
+  const monthGoal = DAILY_GOAL * countWorkdays(firstOfMonth, lastOfMonth);
 
   workedEl.textContent = fmt(totalWorked);
   goalEl.textContent = fmt(monthGoal)+' h';
@@ -491,9 +554,10 @@ function render(){
   weekKeys.forEach(wk=>{
     const w = weeks[wk];
     const wkTotal = w.entries.reduce((s,e)=>s+Number(e.hours),0);
-    const wkDiff = wkTotal - WEEKLY_GOAL;
     const start = w.start;
     const end = new Date(start); end.setDate(end.getDate()+6);
+    const wkGoal = DAILY_GOAL * countWorkdays(start, end);
+    const wkDiff = wkTotal - wkGoal;
     const rangeStr = `${start.getDate()}/${start.getMonth()+1} – ${end.getDate()}/${end.getMonth()+1}`;
     const diffStr = wkDiff < -0.05 ? `faltan ${fmt(Math.abs(wkDiff))} h` : (wkDiff > 0.05 ? `+${fmt(wkDiff)} h` : 'cumplida ✓');
 
@@ -502,7 +566,7 @@ function render(){
     block.innerHTML = `
       <div class="week-head">
         <span>Semana ${rangeStr}</span>
-        <span class="wk-total">${fmt(wkTotal)} / ${WEEKLY_GOAL} h — ${diffStr}</span>
+        <span class="wk-total">${fmt(wkTotal)} / ${fmt(wkGoal)} h — ${diffStr}</span>
       </div>
       <button class="week-export-btn" data-wk="${wk}">⬇ Exportar semana para mi coordinadora</button>
     `;
@@ -627,6 +691,61 @@ document.getElementById('share-btn').addEventListener('click', async ()=>{
   }
 });
 
+document.getElementById('holidays-btn').addEventListener('click', openHolidaysModal);
+document.getElementById('close-holidays-modal').addEventListener('click', ()=>{
+  document.getElementById('holidays-backdrop').classList.remove('show');
+});
+document.getElementById('holidays-backdrop').addEventListener('click', (ev)=>{
+  if(ev.target.id === 'holidays-backdrop') ev.currentTarget.classList.remove('show');
+});
+
+function openHolidaysModal(){
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  document.getElementById('holidays-month-label').textContent = `${MESES[month]} ${year}`;
+  document.getElementById('new-holiday-date').value = isoLocal(new Date(year, month, 1));
+  renderHolidaysList();
+  document.getElementById('holidays-backdrop').classList.add('show');
+}
+
+function renderHolidaysList(){
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const monthHolidays = holidays
+    .filter(h=>{ const d=new Date(h+'T00:00:00'); return d.getFullYear()===year && d.getMonth()===month; })
+    .sort();
+  const listEl = document.getElementById('holidays-list');
+  if(monthHolidays.length===0){
+    listEl.innerHTML = '<div class="empty" style="padding:18px;">No marcaste feriados este mes.</div>';
+    return;
+  }
+  listEl.innerHTML = monthHolidays.map(h=>{
+    const d = new Date(h+'T00:00:00');
+    const diaSemana = ['dom','lun','mar','mié','jue','vie','sáb'][d.getDay()];
+    return `<div class="entry"><div class="left"><span class="date">${diaSemana} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</span></div><div class="right"><button class="del" data-holiday="${h}">✕</button></div></div>`;
+  }).join('');
+  listEl.querySelectorAll('.del').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const h = btn.getAttribute('data-holiday');
+      holidays = holidays.filter(x=>x!==h);
+      saveHolidays();
+      renderHolidaysList();
+      render();
+    });
+  });
+}
+
+document.getElementById('add-holiday-btn').addEventListener('click', ()=>{
+  const val = document.getElementById('new-holiday-date').value;
+  if(!val) return;
+  if(!holidays.includes(val)){
+    holidays.push(val);
+    saveHolidays();
+  }
+  renderHolidaysList();
+  render();
+});
+
 document.getElementById('prev').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()-1); render(); });
 document.getElementById('next').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()+1); render(); });
 
@@ -654,6 +773,7 @@ document.getElementById('entry-form').addEventListener('submit', async (ev)=>{
 (async function init(){
   document.getElementById('input-date').value = todayISO();
   todayTag.textContent = new Date().toLocaleDateString('es-AR', {weekday:'short', day:'2-digit', month:'short'});
+  loadHolidays();
   await loadEntries();
   render();
 })();
