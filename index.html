@@ -114,7 +114,7 @@
     position:relative; text-align:center; z-index:1;
   }
   .ring-center .num{
-    font-family:'JetBrains Mono',monospace; font-size:1.15rem; font-weight:700; color:var(--text-1); line-height:1.1;
+    font-family:'JetBrains Mono',monospace; font-size:0.95rem; font-weight:700; color:var(--text-1); line-height:1.1;
   }
   .ring-center .pct{
     font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--gold);
@@ -388,7 +388,23 @@ const previewEl = document.getElementById('preview');
 
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-function fmt(n){ return (Math.round(n*100)/100).toFixed(1); }
+function fmt(n){
+  const rounded = Math.round(n*100)/100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function fmtHM(n){
+  const totalMinutes = Math.round(Math.max(0,n)*60);
+  const h = Math.floor(totalMinutes/60);
+  const m = totalMinutes%60;
+  return m===0 ? `${h} h` : `${h} h ${m} min`;
+}
+function fmtHMShort(n){
+  const totalMinutes = Math.round(Math.max(0,n)*60);
+  const h = Math.floor(totalMinutes/60);
+  const m = totalMinutes%60;
+  return m===0 ? `${h}h` : `${h}h${m}m`;
+}
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 
@@ -494,7 +510,7 @@ function updatePreview(){
   const end = document.getElementById('input-end').value;
   if(start && end){
     const h = computeHours(start, end);
-    previewEl.innerHTML = `Esa jornada suma <b>${fmt(h)} h</b>`;
+    previewEl.innerHTML = `Esa jornada suma <b>${fmtHM(h)}</b>`;
   } else {
     previewEl.textContent = 'Completá los horarios para ver las horas';
   }
@@ -515,8 +531,8 @@ function render(){
   const lastOfMonth = new Date(year, month, daysInMonth(year, month));
   const monthGoal = DAILY_GOAL * countWorkdays(firstOfMonth, lastOfMonth);
 
-  workedEl.textContent = fmt(totalWorked);
-  goalEl.textContent = fmt(monthGoal)+' h';
+  workedEl.textContent = fmtHMShort(totalWorked);
+  goalEl.textContent = fmtHM(monthGoal);
 
   const pct = monthGoal>0 ? Math.min(100,(totalWorked/monthGoal)*100) : 0;
   ringEl.style.setProperty('--pct', pct.toFixed(1));
@@ -525,10 +541,10 @@ function render(){
   const diff = totalWorked - monthGoal;
   statusPill.classList.remove('falta','ok','sobra');
   if(diff < -0.05){
-    statusPill.textContent = `Faltan ${fmt(Math.abs(diff))} h`;
+    statusPill.textContent = `Faltan ${fmtHM(Math.abs(diff))}`;
     statusPill.classList.add('falta');
   } else if (diff > 0.05){
-    statusPill.textContent = `+${fmt(diff)} h de sobra`;
+    statusPill.textContent = `+${fmtHM(diff)} de sobra`;
     statusPill.classList.add('sobra');
   } else {
     statusPill.textContent = 'Meta cumplida 🎉';
@@ -559,14 +575,14 @@ function render(){
     const wkGoal = DAILY_GOAL * countWorkdays(start, end);
     const wkDiff = wkTotal - wkGoal;
     const rangeStr = `${start.getDate()}/${start.getMonth()+1} – ${end.getDate()}/${end.getMonth()+1}`;
-    const diffStr = wkDiff < -0.05 ? `faltan ${fmt(Math.abs(wkDiff))} h` : (wkDiff > 0.05 ? `+${fmt(wkDiff)} h` : 'cumplida ✓');
+    const diffStr = wkDiff < -0.05 ? `faltan ${fmtHM(Math.abs(wkDiff))}` : (wkDiff > 0.05 ? `+${fmtHM(wkDiff)}` : 'cumplida ✓');
 
     const block = document.createElement('div');
     block.className = 'week-block';
     block.innerHTML = `
       <div class="week-head">
         <span>Semana ${rangeStr}</span>
-        <span class="wk-total">${fmt(wkTotal)} / ${fmt(wkGoal)} h — ${diffStr}</span>
+        <span class="wk-total">${fmtHMShort(wkTotal)} / ${fmtHMShort(wkGoal)} — ${diffStr}</span>
       </div>
       <button class="week-export-btn" data-wk="${wk}">⬇ Exportar semana para mi coordinadora</button>
     `;
@@ -581,7 +597,7 @@ function render(){
           <span class="times">${e.start} – ${e.end}</span>
         </div>
         <div class="right">
-          <span class="hrs">${fmt(e.hours)} h</span>
+          <span class="hrs">${fmtHMShort(e.hours)}</span>
           <button class="del" data-id="${e.id}">✕</button>
         </div>
       `;
@@ -624,24 +640,24 @@ function exportWeek(wk){
   sortedEntries.forEach(e=>{
     const d = new Date(e.date+'T00:00:00');
     const diaSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()];
-    lines.push(`${diaSemana} ${e.date}  ${e.start}–${e.end}  (${fmt(e.hours)} h)`);
+    lines.push(`${diaSemana} ${e.date}  ${e.start}–${e.end}  (${fmtHM(e.hours)})`);
   });
   lines.push('');
-  lines.push(`Total de la semana: ${fmt(total)} h`);
+  lines.push(`Total de la semana: ${fmtHM(total)}`);
 
   const data = { entries: sortedEntries, total, rangeStr, text: lines.join('\n') };
   window._lastExport = data;
 
   document.getElementById('export-month-label').textContent = `Semana del ${rangeStr}`;
   document.getElementById('export-summary').innerHTML = `
-    <div><span>Total de la semana</span><b>${fmt(data.total)} h</b></div>
+    <div><span>Total de la semana</span><b>${fmtHM(data.total)}</b></div>
   `;
   const tbl = document.getElementById('export-table');
   let rows = '<tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Hs</th></tr>';
   data.entries.forEach(e=>{
     const d = new Date(e.date+'T00:00:00');
     const diaSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()];
-    rows += `<tr><td>${diaSemana} ${d.getDate()}/${d.getMonth()+1}</td><td>${e.start}</td><td>${e.end}</td><td>${fmt(e.hours)}</td></tr>`;
+    rows += `<tr><td>${diaSemana} ${d.getDate()}/${d.getMonth()+1}</td><td>${e.start}</td><td>${e.end}</td><td>${fmtHMShort(e.hours)}</td></tr>`;
   });
   tbl.innerHTML = rows;
 
@@ -780,3 +796,4 @@ document.getElementById('entry-form').addEventListener('submit', async (ev)=>{
 </script>
 </body>
 </html>
+```
